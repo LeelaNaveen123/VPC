@@ -1,0 +1,4 @@
+terraform init
+terraform test 
+terraform apply --auto-approve
+terraform destroy
