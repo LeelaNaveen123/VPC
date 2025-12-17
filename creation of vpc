@@ -1,0 +1,119 @@
+provider "aws" {
+  region = "us-east-1"
+}
+
+resource "aws_vpc" "one" {
+  cidr_block = "10.0.0.0/22"
+  tags = {
+    Name = "my-vpc"
+  }
+}
+
+resource "aws_subnet" "two" {
+  vpc_id                  = aws_vpc.one.id
+  availability_zone       = "us-east-1a"
+  cidr_block              = "10.0.0.0/24"
+  map_public_ip_on_launch = true
+  tags = {
+    Name = "sub"
+  }
+}
+
+resource "aws_internet_gateway" "three" {
+  vpc_id = aws_vpc.one.id
+  tags = {
+    Name = "myinternet"
+  }
+}
+
+resource "aws_route_table" "four" {
+  vpc_id = aws_vpc.one.id
+  tags = {
+    Name = "my-route"
+  }
+}
+
+resource "aws_route" "five" {
+  route_table_id         = aws_route_table.four.id
+  destination_cidr_block = "0.0.0.0/0"
+  gateway_id             = aws_internet_gateway.three.id
+}
+
+resource "aws_route_table_association" "assoc" {
+  subnet_id      = aws_subnet.two.id
+  route_table_id = aws_route_table.four.id
+}
+
+# ⭐ ADD THIS — Security Group for SSH
+resource "aws_security_group" "ssh_sg" {
+  name        = "allow_ssh"
+  description = "Allow SSH inbound traffic"
+  vpc_id      = aws_vpc.one.id
+
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]   # optional: allow from anywhere
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_instance" "six" {
+  ami                         = "ami-0fa3fe0fa7920f68e"
+  instance_type               = "t3.micro"
+  subnet_id                   = aws_subnet.two.id
+  associate_public_ip_address = true
+
+  # ⭐ Attach security group
+  vpc_security_group_ids = [aws_security_group.ssh_sg.id]
+
+  tags = {
+    Name = "myserver"
+  }
+}
+
+root@ip-172-31-5-130:~/terraform# vim main.tf
+  route_table_id = aws_route_table.four.id
+}
+
+# ⭐ ADD THIS — Security Group for SSH
+resource "aws_security_group" "ssh_sg" {
+  name        = "allow_ssh"
+  description = "Allow SSH inbound traffic"
+  vpc_id      = aws_vpc.one.id
+
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]   # optional: allow from anywhere
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_instance" "six" {
+  ami                         = "ami-0fa3fe0fa7920f68e"
+  instance_type               = "t3.micro"
+  subnet_id                   = aws_subnet.two.id
+  associate_public_ip_address = true
+
+  # ⭐ Attach security group
+  vpc_security_group_ids = [aws_security_group.ssh_sg.id]
+
+  tags = {
+    Name = "myserver"
+  }
+}
